@@ -1,48 +1,63 @@
-import React from 'react';
-import {Form, Formik, Field, FormikHelpers, ErrorMessage} from 'formik';
-import {TextField} from 'formik-material-ui';
-import {Button, TextField as MTextField} from '@material-ui/core';
+import React, { FC, useEffect, useState } from 'react';
+import { Form, Formik, Field, FormikHelpers, ErrorMessage } from 'formik';
+import { TextField } from 'formik-material-ui';
+import { Button, TextField as MTextField } from '@material-ui/core';
 import * as Yup from 'yup';
+import {RootState} from '../store/rootReducer';
+import { useSelector } from 'react-redux';
+import { updateFields } from './formSlice';
+import { useAppDispatch } from '../store/store';
 
-interface FormFields {
+export interface FormFields {
     userName: string;
     password: string;
     confirmPassword: string;
     email?: string;
 }
 
-const fromInitailValue:FormFields = {
-    userName: '',
-    password: '',
-    confirmPassword: '',
-    email: '',
-}
-
-const formSchema =  Yup.object<FormFields>({
+const formSchema = Yup.object<FormFields>({
     userName: Yup.string().required('User name is required'),
-    password: Yup.string().required('Password require').min(8,'Atlest 8 characters'),
-    confirmPassword: Yup.string().required('Password require').min(8,'Atlest 8 characters'),
+    password: Yup.string().required('Password require').min(8, 'Atlest 8 characters'),
+    confirmPassword: Yup.string().required('Password require').min(8, 'Atlest 8 characters'),
     email: Yup.string().optional().email('Incorrect Email format'),
 })
 
-const onSubmit = (values:FormFields,{setSubmitting}:FormikHelpers<FormFields>)=>{
-    setTimeout(()=>{console.log(values);
-        setSubmitting(false);}, 500);
-}
 
-const Form1 = ()=>{
-    return(
+const Form1: FC<{ handleNext: () => void }> = ({ handleNext }) => {
+
+    const dispatch = useAppDispatch();
+    const [isSumit, SetSubmit] = useState<Boolean>(false);
+    const fromInitailValue: FormFields = {
+        userName: useSelector((state:RootState)=> state.formField.userName),
+        password: useSelector((state:RootState)=> state.formField.password),
+        confirmPassword: useSelector((state:RootState)=> state.formField.confirmPassword),
+        email: useSelector((state:RootState)=> state.formField.email),
+    }
+    const onSubmit = (values: FormFields, { setSubmitting }: FormikHelpers<FormFields>) => {
+        dispatch(updateFields(values));
+        SetSubmit(true)
+        setSubmitting(false)
+    }
+
+    useEffect(() => {
+        if (isSumit) handleNext()
+    })
+
+    return (
         <Formik initialValues={fromInitailValue} validationSchema={formSchema} onSubmit={onSubmit} >
-            {({dirty, isValid, isSubmitting, errors})=>(
+            {({ dirty, isValid, isSubmitting, errors }) => (
                 <Form>
-                    <Field required component={TextField} label='User Name' name='userName' type='text' /> <br/><br/>
-                    <Field required component={TextField} label='Password' name='password' type='password' /> <br/><br/>
-                    <Field required component={TextField} label='Confirm Password' name='confirmPassword' type='password' /> <br/><br/>
+                    <Field required component={TextField} label='User Name' name='userName' type='text' /> <br /><br />
+                    <Field required component={TextField} label='Password' name='password' type='password' /> <br /><br />
+                    <Field required component={TextField} label='Confirm Password' name='confirmPassword' type='password' /> <br /><br />
                     {/* <Field component={TextField} label='Email (optional)' name='email' type='text' /> <br/><br/> */}
-                    <Field as={MTextField} helperText={<ErrorMessage name='email' /> } error={Boolean(errors.email)} label='Email (optional)' name='email' type='email' /> <br/><br/>
-                    <Button disabled={(!dirty || !isValid || isSubmitting)} variant='contained' color='primary'  type="submit" >Submit</Button>
+                    <Field as={MTextField} helperText={<ErrorMessage name='email' />} error={Boolean(errors.email)} label='Email (optional)' name='email' type='email' /> <br /><br />
+                    <div>
+                        <Button variant='contained' color='default' disabled >Back</Button>
+                        <Button disabled={(!isValid || isSubmitting)} variant='contained' color='primary' type="submit" >Next</Button>
+                    </div>
                 </Form>
-            ) }
+            )}
         </Formik>
     )
 };

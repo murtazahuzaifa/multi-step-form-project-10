@@ -1,4 +1,4 @@
-import React, { FC, useState } from 'react';
+import React, { FC, useState, useEffect } from 'react';
 import { Form, Formik, FormikHelpers, Field, ErrorMessage } from 'formik';
 import { TextField, RadioGroup, Select } from 'formik-material-ui';
 import { Button, Radio, FormControlLabel, FormLabel, InputLabel, MenuItem, Menu, IconButton, TextField as Textfield } from '@material-ui/core';
@@ -8,10 +8,14 @@ import * as Yup from 'yup';
 import style from './style.module.css';
 // import Cleave from 'cleave.js/react';
 // import "cleave.js/dist/addons/cleave-phone.ng";
-import { parsePhoneNumberFromString, CountryCode } from 'libphonenumber-js/mobile';
+import { parsePhoneNumberFromString, parsePhoneNumber, CountryCode } from 'libphonenumber-js/mobile';
 import { countries } from '../countries.json';
+import { RootState } from '../store/rootReducer';
+import { useSelector } from 'react-redux';
+import { updateFields } from './formSlice';
+import { useAppDispatch } from '../store/store';
 
-interface FormFields {
+export interface FormFields {
     age: number;
     gender: 'male' | 'female' | '';
     // countryCode: string;
@@ -20,20 +24,10 @@ interface FormFields {
     address: string;
     country: string;
 }
-type CountryType = { name: string, dial_code: string, code: CountryCode }
-
-const formInitialValues: FormFields = {
-    age: 0,
-    gender: '',
-    // countryCode: '',
-    mobileNo: '',
-    city: '',
-    address: '',
-    country: '',
-}
+type CountryType = { name?: string, dial_code?: string, code?: CountryCode }
 
 const formSchema = Yup.object<FormFields>({
-    age: Yup.number().required('Your age?'),
+    age: Yup.number().required('Your age?').min(13, 'Cannot be less than 13').max(60, 'Cannot be greater than 60'),
     gender: Yup.mixed<'male' | 'female'>().required('Gender ?'),
     // countryCode: Yup.string().required('Code?'),
     mobileNo: Yup.string().required('Mobile numeber ?'),
@@ -43,10 +37,28 @@ const formSchema = Yup.object<FormFields>({
 })
 
 ////////////////////////////////////////////////////// COMPONENT /////////////////////////////////////////////////
-const Form2: FC = () => {
-    // console.log(parsePhoneNumberFromString('336 0031756',)?.isValid());
+const Form2: FC<{ handleNext: () => void, handleBack: () => void }> = ({ handleNext, handleBack }) => {
+    const dispatch = useAppDispatch();
+    const mobileNo = useSelector((state: RootState) => state.formField.mobileNo);
+    const country = useSelector((state: RootState) => state.formField.country);
+    // console.log(parsePhoneNumberFromString('336 0031756','PK')?.formatInternational());
+    const [isSumit, SetSubmit] = useState<Boolean>(false);
     const [anchorCntryLst, setanchorCntryLst] = useState<null | HTMLElement>(null);
-    const [selectedCntry, setSelectedCntry] = useState<CountryType | null>() //(null)
+    const selectedCountry = {
+        country:country,
+        dial_code: `+${parsePhoneNumberFromString(mobileNo)?.countryCallingCode}`,
+        code: parsePhoneNumberFromString(mobileNo)?.country,
+    }
+    const [selectedCntry, setSelectedCntry] = useState<CountryType>(selectedCountry) //(null)
+
+    const formInitialValues: FormFields = {
+        age: useSelector((state: RootState) => state.formField.age),
+        gender: useSelector((state: RootState) => state.formField.gender),
+        mobileNo: mobileNo,
+        city: useSelector((state: RootState) => state.formField.city),
+        address: useSelector((state: RootState) => state.formField.address),
+        country: country,
+    }
 
     const handleCntrySelect = (country: CountryType) => () => {
         setSelectedCntry(country);
@@ -56,7 +68,7 @@ const Form2: FC = () => {
     const handleValidateForm = (values: FormFields) => {
         const error: Partial<FormFields> = {}
         if (values.mobileNo) {
-            const isPhoneNumValid = parsePhoneNumberFromString(values.mobileNo, selectedCntry?.code)?.isValid();
+            const isPhoneNumValid = parsePhoneNumberFromString(values.mobileNo, selectedCntry.code)?.isValid();
             if (!isPhoneNumValid) {
                 error.mobileNo = 'Invalid mobile number'
             }
@@ -65,20 +77,28 @@ const Form2: FC = () => {
     }
     const onSubmit = (values: FormFields, { setSubmitting }: FormikHelpers<FormFields>) => {
         console.log(values);
+        dispatch(updateFields({...values, mobileNo: parsePhoneNumber(values.mobileNo, selectedCntry.code).formatInternational() }));
+        // dispatch(updateFields({...values }));
         setSubmitting(false);
+        SetSubmit(true)
     }
 
+    useEffect(() => {
+        if (isSumit) handleNext()
+    })
+
+    /////////////////////////////////////////// RENDERing ////////////////////////////////////
     return (
         <Formik initialValues={formInitialValues} validationSchema={formSchema} onSubmit={onSubmit} validate={handleValidateForm} >
-            {({ dirty, isValid, isSubmitting, errors, touched, }) => (
+            {({ isValid, isSubmitting, values, handleChange }) => (
                 <Form>
                     {/* <Cleave placeholder="Mobile.No" options={{phone: true, phoneRegionCode: 'NG', }}/> */}
 
                     <Field required component={TextField} type='number' name='age' label='Age' /> <br /><br />
 
                     <div>
-                        <FormLabel component="legend">Gender</FormLabel>
-                        <Field required component={RadioGroup} row type='radio' name='gender' children={
+                        <FormLabel component="legend">Gender*</FormLabel>
+                        <Field required component={RadioGroup} row type='radio' name='gender' value={values.gender} onChange={handleChange} children={
                             <>
                                 <FormControlLabel value="male" control={<Radio color="primary" />} label="Male" labelPlacement="start" />
                                 <FormControlLabel value="female" control={<Radio color="primary" />} label="Female" labelPlacement="start" />
@@ -89,8 +109,8 @@ const Form2: FC = () => {
                     <div className={`${style.phoneNumCode}`}>
                         <div style={{ marginRight: '10px' }}>
                             <IconButton title='select country code' onClick={(e) => { setanchorCntryLst(e.currentTarget) }} >
-                                {selectedCntry ?
-                                    <img width='30' height='25' src={`https://flagpedia.net/data/flags/w702/${selectedCntry?.code.toLowerCase()}.webp`} alt="flag" /> :
+                                {selectedCntry.code?
+                                    <img width='30' height='25' src={`https://flagpedia.net/data/flags/w702/${selectedCntry.code.toLowerCase()}.webp`} alt="flag" /> :
                                     <Phone />}
                             </IconButton>
 
@@ -103,7 +123,7 @@ const Form2: FC = () => {
                                 PaperProps={{ style: { maxHeight: 80 * 4.5, width: '55ch', }, }}
                             >
                                 {countries.map((option, idx) => (
-                                    <MenuItem key={idx} onClick={handleCntrySelect(option as CountryType)} selected={selectedCntry?.code === option.code}>
+                                    <MenuItem key={idx} onClick={handleCntrySelect(option as CountryType)} selected={selectedCntry.code === option.code}>
                                         <img width='30' style={{ marginRight: '10px' }}
                                             src={`https://disease.sh/assets/img/flags/${option.code.toLowerCase()}.png`} alt="flag"
                                         />
@@ -112,22 +132,22 @@ const Form2: FC = () => {
                                 ))}
                             </Menu>
                         </div>
-                        <div><Field required component={TextField} type='tel' disabled={!Boolean(selectedCntry)} name='mobileNo' label='Mobile.No' /></div>
+                        <div><Field required component={TextField} type='tel' disabled={!Boolean(selectedCntry.code)} name='mobileNo' label='Mobile.No' /></div>
                     </div>
                     <br />
                     <Field required component={TextField} type='text' name='city' label='City' /> <br /><br />
                     <Field required component={TextField} type='text' name='address' label='Address' /> <br /><br />
                     {/* <Field required component={TextField} type='text' name='country' label='Country' /> <br /><br /> */}
-                    <div>
-                        <InputLabel id="country-select-label">Country</InputLabel>
-                        <Field required component={Select} type='select' name='country' label='Country' labelId="country-select-label" id="demo-simple" fullWidth children={
-                                countries.map(({name}, idx) => (
-                                    <MenuItem key={idx} value={name} >{name}</MenuItem>
-                                ))
+                    <div >
+                        <Field required component={TextField} select type='select' name='country' label='Country' fullWidth children={
+                            countries.map(({ name }, idx) => (
+                                <MenuItem key={idx} value={name} >{name}</MenuItem>
+                            ))
                         } />
                     </div>
                     <br /><br />
-                    <Button type="submit" disabled={(!dirty || !isValid || isSubmitting)} variant='contained' color='primary' >Submit</Button>
+                    <Button onClick={handleBack} variant='contained' color='default' >Back</Button>
+                    <Button type="submit" disabled={(!isValid || isSubmitting)} variant='contained' color='primary' >Next</Button>
                 </Form>
             )}
         </Formik>
