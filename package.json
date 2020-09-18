@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@material-ui/core": "^4.11.0",
+    "@material-ui/icons": "^4.9.1",
+    "@material-ui/lab": "^4.0.0-alpha.56",
     "@testing-library/jest-dom": "^4.2.4",
     "@testing-library/react": "^9.5.0",
     "@testing-library/user-event": "^7.2.1",
@@ -10,10 +13,16 @@
     "@types/node": "^12.12.58",
     "@types/react": "^16.9.49",
     "@types/react-dom": "^16.9.8",
+    "cleave.js": "^1.6.0",
+    "formik": "^2.1.5",
+    "formik-material-ui": "^3.0.0",
+    "formik-material-ui-lab": "0.0.5",
+    "libphonenumber-js": "^1.7.58",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
     "react-scripts": "3.4.3",
-    "typescript": "^3.7.5"
+    "typescript": "^3.7.5",
+    "yup": "^0.29.3"
   },
   "scripts": {
     "start": "react-scripts start",
@@ -35,5 +44,9 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "@types/cleave.js": "^1.4.3",
+    "@types/yup": "^0.29.7"
   }
 }

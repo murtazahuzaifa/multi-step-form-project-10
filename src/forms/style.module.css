@@ -1,0 +1,8 @@
+.phoneNumCode{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.phoneNumCode > span {
+    margin: 0 10px;
+}
