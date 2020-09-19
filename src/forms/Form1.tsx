@@ -1,12 +1,24 @@
 import React, { FC, useEffect, useState } from 'react';
 import { Form, Formik, Field, FormikHelpers, ErrorMessage } from 'formik';
 import { TextField } from 'formik-material-ui';
-import { Button, TextField as MTextField } from '@material-ui/core';
+import { Button, TextField as MTextField, Grid } from '@material-ui/core';
+import { Visibility, VisibilityOff, LockRounded, AccountCircle, EmailRounded } from '@material-ui/icons';
 import * as Yup from 'yup';
-import {RootState} from '../store/rootReducer';
+import { RootState } from '../store/rootReducer';
 import { useSelector } from 'react-redux';
 import { updateFields } from './formSlice';
 import { useAppDispatch } from '../store/store';
+import { createStyles, Theme, makeStyles } from '@material-ui/core/styles';
+import style from './style.module.css';
+// import clsx from 'clsx';
+
+const useStyles = makeStyles((theme: Theme) =>
+    createStyles({
+        margin: {
+            margin: theme.spacing(1),
+        },
+    }),
+);
 
 export interface FormFields {
     userName: string;
@@ -21,40 +33,97 @@ const formSchema = Yup.object<FormFields>({
     confirmPassword: Yup.string().required('Password require').min(8, 'Atlest 8 characters'),
     email: Yup.string().optional().email('Incorrect Email format'),
 })
+const onValidate = (values: FormFields) => {
+    const error: Partial<FormFields> = {}
+    const { password, confirmPassword } = values
+    if (password !== confirmPassword) {
+        error.confirmPassword = 'Password not match';
+    }
+    return error;
+}
 
-
+////////////////////////////////////////////////////// COMPONENT /////////////////////////////////////////////////
 const Form1: FC<{ handleNext: () => void }> = ({ handleNext }) => {
 
+    const classes = useStyles();
     const dispatch = useAppDispatch();
+    const [passIsVisible, setPassIsVisible] = useState({ password: false, confirmPassword: false });
     const [isSumit, SetSubmit] = useState<Boolean>(false);
     const fromInitailValue: FormFields = {
-        userName: useSelector((state:RootState)=> state.formField.userName),
-        password: useSelector((state:RootState)=> state.formField.password),
-        confirmPassword: useSelector((state:RootState)=> state.formField.confirmPassword),
-        email: useSelector((state:RootState)=> state.formField.email),
+        userName: useSelector((state: RootState) => state.formField.userName),
+        password: useSelector((state: RootState) => state.formField.password),
+        confirmPassword: useSelector((state: RootState) => state.formField.confirmPassword),
+        email: useSelector((state: RootState) => state.formField.email),
     }
     const onSubmit = (values: FormFields, { setSubmitting }: FormikHelpers<FormFields>) => {
         dispatch(updateFields(values));
-        SetSubmit(true)
-        setSubmitting(false)
+        SetSubmit(true);
+        setSubmitting(false);
     }
+
+    const handleClickShowPassword = (prop: keyof { password: boolean, confirmPassword: boolean }) => () => {
+        setPassIsVisible({ ...passIsVisible, [prop]: !passIsVisible[prop] });
+    };
 
     useEffect(() => {
         if (isSumit) handleNext()
     })
 
+    /////////////////////////////////////////// RENDERing ////////////////////////////////////
     return (
-        <Formik initialValues={fromInitailValue} validationSchema={formSchema} onSubmit={onSubmit} >
-            {({ dirty, isValid, isSubmitting, errors }) => (
+        <Formik initialValues={fromInitailValue} validationSchema={formSchema} onSubmit={onSubmit} validate={onValidate} >
+            {({ isValid, isSubmitting, errors }) => (
                 <Form>
-                    <Field required component={TextField} label='User Name' name='userName' type='text' /> <br /><br />
-                    <Field required component={TextField} label='Password' name='password' type='password' /> <br /><br />
-                    <Field required component={TextField} label='Confirm Password' name='confirmPassword' type='password' /> <br /><br />
+                    <div className={classes.margin}>
+                        <Grid container spacing={1} alignItems="flex-end">
+                            <Grid item> <AccountCircle /> </Grid>
+                            <Grid item>
+                                <Field required component={TextField} name="userName" label="User Name" type='text' />
+                            </Grid>
+                        </Grid>
+                    </div>
+                    {/* <Field required component={TextField} label='Password' name='password' type='password' /> <br /><br /> */}
+                    {/* <Field required component={TextField} label='Confirm Password' name='confirmPassword' type='password' /> <br /><br /> */}
                     {/* <Field component={TextField} label='Email (optional)' name='email' type='text' /> <br/><br/> */}
-                    <Field as={MTextField} helperText={<ErrorMessage name='email' />} error={Boolean(errors.email)} label='Email (optional)' name='email' type='email' /> <br /><br />
-                    <div>
-                        <Button variant='contained' color='default' disabled >Back</Button>
-                        <Button disabled={(!isValid || isSubmitting)} variant='contained' color='primary' type="submit" >Next</Button>
+
+                    <div className={classes.margin} >
+                        <Grid container spacing={1} alignItems="flex-end">
+                            <Grid item> <LockRounded /></Grid>
+                            <Grid item>
+                                <Field required component={TextField} name="password" label="Password" type={passIsVisible.password ? 'text' : 'password'} />
+                            </Grid>
+                            <Grid item>
+                                <div onClick={handleClickShowPassword('password')} >
+                                    {passIsVisible.password ? <Visibility fontSize="small" /> : <VisibilityOff fontSize="small" />}
+                                </div>
+                            </Grid>
+                        </Grid>
+                    </div>
+                    <div className={classes.margin} >
+                        <Grid container spacing={1} alignItems="flex-end">
+                            <Grid item> <LockRounded /></Grid>
+                            <Grid item>
+                                <Field required component={TextField} name="confirmPassword" label="Confrim Password" type={passIsVisible.confirmPassword ? 'text' : 'password'} />
+                            </Grid>
+                            <Grid item>
+                                <div onClick={handleClickShowPassword('confirmPassword')} >
+                                    {passIsVisible.confirmPassword ? <Visibility fontSize="small" /> : <VisibilityOff fontSize="small" />}
+                                </div>
+                            </Grid>
+                        </Grid>
+                    </div>
+                    <div className={classes.margin}>
+                        <Grid container spacing={1} alignItems="flex-end">
+                            <Grid item><EmailRounded /></Grid>
+                            <Grid item>
+                                <Field component={MTextField} name="email" label="Email (optional)" type='text' helperText={<ErrorMessage name='email' />} error={Boolean(errors.email)} />
+                            </Grid>
+                        </Grid>
+                    </div>
+                    {/* <Field as={MTextField} helperText={<ErrorMessage name='email' />} error={Boolean(errors.email)} label='Email (optional)' name='email' type='email' /> <br /><br /> */}
+                    <div className={`${style.actionBtns}`} >
+                        <div><Button variant='contained' color='default' disabled >Back</Button></div>
+                        <div><Button disabled={(!isValid || isSubmitting)} variant='contained' color='primary' type="submit" >Next</Button></div>
                     </div>
                 </Form>
             )}
@@ -63,7 +132,6 @@ const Form1: FC<{ handleNext: () => void }> = ({ handleNext }) => {
 };
 
 export default Form1;
-
 
 // import React, { FC, useState } from 'react';
 // import { Form, Formik, FormikHelpers, Field, ErrorMessage } from 'formik';

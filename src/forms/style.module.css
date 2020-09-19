@@ -6,3 +6,40 @@
 .phoneNumCode > span {
     margin: 0 10px;
 }
+
+.actionBtns{
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.actionBtns > div{
+    margin: 0 10px
+}
+
+/* //////////////////////////////////   FORM 3 ////////////////////////////////////////////// */
+.form3 {
+    min-width: 350px;
+    max-width: 600px;
+    padding: 0 20px;
+}
+.form3 > div:nth-child(1) > div{
+    font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+    font-size: larger;
+    margin-bottom: 15px;
+    padding-left: 10px;
+    border-bottom: 1px solid rgb(155, 195, 247);
+    color: rgb(56, 55, 55);
+}
+.form3 > div:nth-child(1) > div > span{
+    font-weight: bold;
+    text-transform: capitalize;
+    margin: 0 5px;
+    color: black;
+}
+.passwordText {
+    -webkit-text-security: disc;
+}
+.normalText {
+    -webkit-text-security: none;
+}
